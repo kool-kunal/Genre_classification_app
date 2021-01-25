@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:genre_classification_app/services/socket.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
 class TestPage extends StatefulWidget {
@@ -20,14 +22,34 @@ class _TestPageState extends State<TestPage> {
       PickedFile p = await ImagePicker().getVideo(source: ImageSource.gallery);
       if (p != null) {
         _video = p;
+
+        // _videoPlayerController = VideoPlayerController.network(
+        //     "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")
+        //   ..initialize().then((value) {
+        //     setState(() {});
+        //   });
+
         _videoPlayerController = VideoPlayerController.file(File(_video.path))
           ..initialize().then((value) {
+            _videoPlayerController.setLooping(true);
+            _videoPlayerController.play();
+
             setState(() {});
           });
       }
     } catch (e) {
       print("error: $e");
     }
+  }
+
+  void _play() {
+    _videoPlayerController.play();
+    setState(() {});
+  }
+
+  void _pause() {
+    _videoPlayerController.pause();
+    setState(() {});
   }
 
   @override
@@ -40,6 +62,7 @@ class _TestPageState extends State<TestPage> {
   Widget build(BuildContext context) {
     _cardHeight = MediaQuery.of(context).size.height * 0.4;
     _cardWidth = MediaQuery.of(context).size.width * 0.8;
+    var comm = Provider.of<SocketUtil>(context);
     return Container(
       color: Colors.white,
       child: Stack(
@@ -74,6 +97,7 @@ class _TestPageState extends State<TestPage> {
                       ),
                     )
                   : Card(
+                      elevation: 4,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20)),
                       color: Colors.white,
@@ -103,11 +127,10 @@ class _TestPageState extends State<TestPage> {
                             if (_videoPlayerController != null &&
                                 _videoPlayerController.value.initialized)
                               RaisedButton(
-                                onPressed: () {
-                                  _videoPlayerController.value.isPlaying
-                                      ? _videoPlayerController.play()
-                                      : _videoPlayerController.pause();
-                                },
+                                onPressed:
+                                    _videoPlayerController.value.isPlaying
+                                        ? _pause
+                                        : _play,
                                 shape: CircleBorder(),
                                 color: Colors.amber,
                                 child: _videoPlayerController.value.isPlaying
@@ -135,7 +158,15 @@ class _TestPageState extends State<TestPage> {
                                   ),
                                 ),
                                 RaisedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    Provider.of<SocketUtil>(context,
+                                            listen: false)
+                                        .checkFile(
+                                      ip: "192.168.43.175",
+                                      port: 5050,
+                                      videoFile: File(_video.path),
+                                    );
+                                  },
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),

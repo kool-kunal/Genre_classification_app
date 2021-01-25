@@ -30,6 +30,7 @@ dependencies:
   cupertino_icons: ^1.0.0
   image_picker: ^0.6.7
   video_player: 
+  provider:
   #flutter_statusbarcolor:
 
 dev_dependencies:
