@@ -10,6 +10,12 @@ class SocketUtil extends ChangeNotifier {
   int port;
   Socket _socket;
   List<String> messageStream;
+  bool sendingFile = false;
+  bool waitingForResult = false;
+  bool testingDone = false;
+  int index = 0;
+  String output = "";
+  double dataSent = 0.0;
 
   Future<void> _init({String ip, int port}) async {
     print("connecting to host $ip at $port");
@@ -34,8 +40,6 @@ class SocketUtil extends ChangeNotifier {
     int port,
     File videoFile,
   }) async {
-    bool _sendingFile = false;
-    int index = 0;
     //connect to server
     await _init(ip: ip, port: port);
 
@@ -48,21 +52,40 @@ class SocketUtil extends ChangeNotifier {
         _send(utf8.encode(videoStream.length.toString()));
       } else if (msg == "LENGTH RECEIVED") {
         print("length received");
-        _sendingFile = true;
+        sendingFile = true;
         index = 0;
         _send(
             videoStream.sublist(index, min(videoStream.length, index + 1000)));
-        index += 1000;
-      } else if (_sendingFile && msg == "BYTE RECEIVED") {
-        //print(index);
+        index = min(videoStream.length, index + 1000);
+        dataSent = index / videoStream.length;
+        notifyListeners();
+      } else if (sendingFile && msg == "BYTE RECEIVED") {
+        print(index);
         _send(
             videoStream.sublist(index, min(videoStream.length, index + 1000)));
-        index += 1000;
+        index = min(videoStream.length, index + 1000);
         if (index >= videoStream.length) {
-          _sendingFile = false;
+          sendingFile = false;
         }
+        dataSent = index / videoStream.length;
+        notifyListeners();
       } else if (msg == "FILE RECEIVED") {
         print("file sent successful!");
+        _send(utf8.encode("BEGIN TEST"));
+      } else if (msg == "RUNNING TEST") {
+        waitingForResult = true;
+        notifyListeners();
+        print("running test");
+      } else if (msg == "SENDING RESULT") {
+        _send(utf8.encode("SEND RESULT"));
+      } else if (msg.contains("FINAL_RESULT")) {
+        output = msg.split("=").last;
+        print(output);
+        _send(utf8.encode("CLOSE"));
+        _close();
+        waitingForResult = false;
+        testingDone = true;
+        notifyListeners();
       }
     });
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:genre_classification_app/services/socket.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,9 @@ class _TestPageState extends State<TestPage> {
   double _cardHeight = 200;
   double _cardWidth = 300;
   VideoPlayerController _videoPlayerController;
+  double progressBarHeight = 0;
+  double backgroundProgressBarWidth = 0;
+  double frontProgressBarWidth = 0;
 
   void _pickVideo() async {
     try {
@@ -63,6 +67,30 @@ class _TestPageState extends State<TestPage> {
     _cardHeight = MediaQuery.of(context).size.height * 0.4;
     _cardWidth = MediaQuery.of(context).size.width * 0.8;
     var comm = Provider.of<SocketUtil>(context);
+    if (comm.sendingFile && !comm.waitingForResult && !comm.testingDone)
+      setState(() {
+        print("sending is true");
+        _cardHeight = MediaQuery.of(context).size.height * 0.4 + 12;
+      });
+    else
+      setState(() {
+        _cardHeight = MediaQuery.of(context).size.height * 0.4;
+      });
+
+    if (comm.sendingFile && !comm.waitingForResult && !comm.testingDone) {
+      setState(() {
+        progressBarHeight = 10;
+        frontProgressBarWidth =
+            MediaQuery.of(context).size.width * 0.6 * comm.dataSent;
+        backgroundProgressBarWidth = MediaQuery.of(context).size.width * 0.6;
+      });
+    } else {
+      setState(() {
+        progressBarHeight = 0;
+        frontProgressBarWidth = 0;
+        backgroundProgressBarWidth = 0;
+      });
+    }
     return Container(
       color: Colors.white,
       child: Stack(
@@ -143,39 +171,70 @@ class _TestPageState extends State<TestPage> {
                                         color: Colors.blueGrey,
                                       ),
                               ),
+                            Stack(
+                              children: [
+                                AnimatedContainer(
+                                  duration: Duration(milliseconds: 300),
+                                  height: progressBarHeight,
+                                  width: backgroundProgressBarWidth,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(5),
+                                    color: Colors.blueGrey,
+                                  ),
+                                ),
+                                AnimatedContainer(
+                                  duration: Duration(milliseconds: 300),
+                                  height: progressBarHeight,
+                                  width: frontProgressBarWidth,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(5),
+                                    color: Colors.lightBlue,
+                                  ),
+                                )
+                              ],
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                RaisedButton(
-                                  onPressed: _pickVideo,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
+                                if ((!comm.sendingFile &&
+                                        !comm.testingDone &&
+                                        !comm.waitingForResult) ||
+                                    (!comm.sendingFile &&
+                                        !comm.waitingForResult &&
+                                        comm.testingDone))
+                                  RaisedButton(
+                                    onPressed: _pickVideo,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    color: Colors.amber,
+                                    child: Text(
+                                      "Pick another Video",
+                                      style: TextStyle(color: Colors.blueGrey),
+                                    ),
                                   ),
-                                  color: Colors.amber,
-                                  child: Text(
-                                    "Pick another Video",
-                                    style: TextStyle(color: Colors.blueGrey),
-                                  ),
-                                ),
-                                RaisedButton(
-                                  onPressed: () {
-                                    Provider.of<SocketUtil>(context,
-                                            listen: false)
-                                        .checkFile(
-                                      ip: "192.168.43.175",
-                                      port: 5050,
-                                      videoFile: File(_video.path),
-                                    );
-                                  },
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  color: Colors.amber,
-                                  child: Text(
-                                    "Upload File",
-                                    style: TextStyle(color: Colors.blueGrey),
-                                  ),
-                                )
+                                if (comm.sendingFile == false &&
+                                    comm.testingDone == false &&
+                                    comm.waitingForResult == false)
+                                  RaisedButton(
+                                    onPressed: () {
+                                      Provider.of<SocketUtil>(context,
+                                              listen: false)
+                                          .checkFile(
+                                        ip: "192.168.43.175",
+                                        port: 5050,
+                                        videoFile: File(_video.path),
+                                      );
+                                    },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    color: Colors.amber,
+                                    child: Text(
+                                      "Upload File",
+                                      style: TextStyle(color: Colors.blueGrey),
+                                    ),
+                                  )
                               ],
                             )
                           ],
