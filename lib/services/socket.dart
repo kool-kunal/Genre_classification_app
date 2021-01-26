@@ -9,20 +9,29 @@ class SocketUtil extends ChangeNotifier {
   String ip;
   int port;
   Socket _socket;
-  List<String> messageStream;
+  List<String> label = ['action', 'drama', 'horror', 'romance'];
   bool sendingFile = false;
   bool waitingForResult = false;
   bool testingDone = false;
   int index = 0;
-  String output = "";
+  List<Map<String, double>> output;
   double dataSent = 0.0;
 
   Future<void> _init({String ip, int port}) async {
     print("connecting to host $ip at $port");
     this.ip = ip;
     this.port = port;
-    this.messageStream = [];
+    //this.messageStream = [];
     this._socket = await Socket.connect(this.ip, this.port);
+  }
+
+  void reset() {
+    sendingFile = false;
+    waitingForResult = false;
+    testingDone = false;
+    index = 0;
+    dataSent = 0.0;
+    notifyListeners();
   }
 
   Future<void> _close() async {
@@ -60,7 +69,7 @@ class SocketUtil extends ChangeNotifier {
         dataSent = index / videoStream.length;
         notifyListeners();
       } else if (sendingFile && msg == "BYTE RECEIVED") {
-        print(index);
+        //print(index);
         _send(
             videoStream.sublist(index, min(videoStream.length, index + 1000)));
         index = min(videoStream.length, index + 1000);
@@ -79,7 +88,14 @@ class SocketUtil extends ChangeNotifier {
       } else if (msg == "SENDING RESULT") {
         _send(utf8.encode("SEND RESULT"));
       } else if (msg.contains("FINAL_RESULT")) {
-        output = msg.split("=").last;
+        List<String> temp = msg.split("=").last.split(" ");
+        temp.removeLast();
+        //print(temp);
+        output = [];
+        for (int i = 0; i < temp.length; i++) {
+          String curr = double.parse(temp[i]).toStringAsFixed(4);
+          output.add({this.label[i]: double.parse(curr) * 100});
+        }
         print(output);
         _send(utf8.encode("CLOSE"));
         _close();

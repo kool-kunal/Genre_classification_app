@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:genre_classification_app/services/socket.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:video_player/video_player.dart';
 
 class TestPage extends StatefulWidget {
@@ -37,8 +38,8 @@ class _TestPageState extends State<TestPage> {
           ..initialize().then((value) {
             _videoPlayerController.setLooping(true);
             _videoPlayerController.play();
-
             setState(() {});
+            Provider.of<SocketUtil>(context, listen: false).reset();
           });
       }
     } catch (e) {
@@ -69,10 +70,12 @@ class _TestPageState extends State<TestPage> {
     var comm = Provider.of<SocketUtil>(context);
     if (comm.sendingFile && !comm.waitingForResult && !comm.testingDone)
       setState(() {
-        print("sending is true");
+        //print("sending is true");
         _cardHeight = MediaQuery.of(context).size.height * 0.4 + 12;
       });
-    else
+    else if (!comm.sendingFile && !comm.waitingForResult && comm.testingDone) {
+      _cardHeight = MediaQuery.of(context).size.height * 0.5;
+    } else
       setState(() {
         _cardHeight = MediaQuery.of(context).size.height * 0.4;
       });
@@ -102,14 +105,14 @@ class _TestPageState extends State<TestPage> {
           Hero(
             tag: "test",
             child: Container(
-              padding: const EdgeInsets.only(top: 30),
-              alignment: Alignment.bottomCenter,
-              height: 300,
+              padding: const EdgeInsets.all(30),
+              alignment: Alignment.bottomRight,
+              height: MediaQuery.of(context).size.height * 0.3,
               child: Image.asset("assets/images/test.png"),
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.4,
+            top: MediaQuery.of(context).size.height * 0.3,
             child: Container(
               width: MediaQuery.of(context).size.width,
               alignment: Alignment.topCenter,
@@ -193,6 +196,36 @@ class _TestPageState extends State<TestPage> {
                                 )
                               ],
                             ),
+                            if (!comm.sendingFile &&
+                                !comm.waitingForResult &&
+                                comm.testingDone)
+                              Flexible(
+                                child: SfCircularChart(
+                                  legend: Legend(
+                                    isVisible: true,
+                                    title: LegendTitle(
+                                      text: "Genre",
+                                      textStyle: TextStyle(
+                                        color: Colors.lightBlue,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    position: LegendPosition.left,
+                                  ),
+                                  series: <CircularSeries>[
+                                    DoughnutSeries(
+                                      dataSource: comm.output,
+                                      xValueMapper: (data, _) =>
+                                          data.keys.toList()[0],
+                                      yValueMapper: (data, _) =>
+                                          data.values.toList()[0],
+                                      dataLabelSettings:
+                                          DataLabelSettings(isVisible: true),
+                                    )
+                                  ],
+                                ),
+                              ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
