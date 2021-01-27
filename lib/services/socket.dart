@@ -16,6 +16,7 @@ class SocketUtil extends ChangeNotifier {
   int index = 0;
   List<Map<String, double>> output;
   double dataSent = 0.0;
+  int payloadSize = 1000000;
 
   Future<void> _init({String ip, int port}) async {
     print("connecting to host $ip at $port");
@@ -58,23 +59,26 @@ class SocketUtil extends ChangeNotifier {
     this._socket.listen((event) {
       String msg = utf8.decode(event);
       if (msg == "START") {
+        sendingFile = true;
         _send(utf8.encode(videoStream.length.toString()));
+        notifyListeners();
       } else if (msg == "LENGTH RECEIVED") {
         print("length received");
         sendingFile = true;
         index = 0;
-        _send(
-            videoStream.sublist(index, min(videoStream.length, index + 1000)));
-        index = min(videoStream.length, index + 1000);
+        _send(videoStream.sublist(
+            index, min(videoStream.length, index + payloadSize)));
+        index = min(videoStream.length, index + payloadSize);
         dataSent = index / videoStream.length;
         notifyListeners();
       } else if (sendingFile && msg == "BYTE RECEIVED") {
         //print(index);
-        _send(
-            videoStream.sublist(index, min(videoStream.length, index + 1000)));
-        index = min(videoStream.length, index + 1000);
+        _send(videoStream.sublist(
+            index, min(videoStream.length, index + payloadSize)));
+        index = min(videoStream.length, index + payloadSize);
         if (index >= videoStream.length) {
           sendingFile = false;
+          waitingForResult = true;
         }
         dataSent = index / videoStream.length;
         notifyListeners();
